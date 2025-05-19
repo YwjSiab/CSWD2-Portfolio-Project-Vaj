@@ -1,5 +1,5 @@
 import {sanitizeInput} from './security.js';
-import {projects, Project, displayProjects } from './project.js';
+import { Project } from './project.js';
 
 // Part 5: Contact Form Validation
 const contactForm = document.getElementById('contactForm');
@@ -33,6 +33,13 @@ if (contactForm) {
                 if (formError) {formError.innerText = errorMsg;}
                 if (formSuccess) {formSuccess.innerText = '';} // Clear success message
             };
+
+            const sqlPattern = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|TRUNCATE|--)\b/i;
+
+            if (sqlPattern.test(name) || sqlPattern.test(message)) {
+            showError("SQL keywords are not allowed in title or message.", formError, formSuccess);
+            return;
+            }
 
             // Validate name making sure it only takes letters and spaces.
             const nameRegex = /^[A-Za-z\s]+$/;
@@ -85,33 +92,48 @@ if (contactForm) {
 
 // Sprint B1 Part 2: Create user friendly error and success messages
 function showError(msg, errorElement, successElement) {
-    if (errorElement) {
-        errorElement.innerText = msg;
-        errorElement.style.display = 'block';
+    try {
+        if (errorElement) {
+            errorElement.innerText = msg;
+            errorElement.style.display = 'block';
+        }
+        if (successElement) {
+            successElement.style.display = 'none';
+        }
+        console.error(`Error: ${msg}`);
+    } catch (err) {
+        console.error("showError failed:", err);
     }
-    if (successElement) {
-        successElement.style.display = 'none';
-    }
-    console.error(`Error: ${msg}`);
 }
 
 function clearError(errorElement) {
-    if (errorElement) {
-        errorElement.innerText = '';
-        errorElement.style.display = 'none';
+    try {
+        if (errorElement) {
+            errorElement.innerText = '';
+            errorElement.style.display = 'none';
+        }
+    } catch (err) {
+        console.error("clearError failed:", err);
     }
 }
 
 function showSuccess(msg, successElement) {
-    if (successElement) {
-        successElement.innerText = msg;
-        successElement.style.display = 'block';
-        console.log(`Success: ${msg}`);
+    try {
+        if (successElement) {
+            successElement.innerText = msg;
+            successElement.style.display = 'block';
+            console.log(`Success: ${msg}`);
 
-        // Hide success message after 3 seconds
-        setTimeout(() => {
-            successElement.style.display = 'none';
-        }, 3000);
+            setTimeout(() => {
+                try {
+                    successElement.style.display = 'none';
+                } catch (timeoutErr) {
+                    console.error("Error hiding success message:", timeoutErr);
+                }
+            }, 3000);
+        }
+    } catch (err) {
+        console.error("showSuccess failed:", err);
     }
 }
 
@@ -164,7 +186,7 @@ function createInputGroup(id, labelText, type = 'text', placeholder = '') {
     return wrapper;
 }
 
-const handleFormSubmission = (event) => {
+const handleFormSubmission = async (event) => {
     try {
         event.preventDefault();
 
@@ -180,11 +202,34 @@ const handleFormSubmission = (event) => {
 
         technologies = technologies ? technologies.split(',').map(tech => tech.trim()) : [];
 
-        if (!title || !description || !technologies.length || !projectLink) {
-            showError("All fields are required!", formError, formSuccess);
+        try {
+            if (!title || !description || !technologies.length || !projectLink) {
+                showError("All fields are required!", formError, formSuccess);
+                return;
+            }
+
+            const sqlPattern = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|TRUNCATE|--)\b/i;
+            if (sqlPattern.test(title) || sqlPattern.test(description)) {
+                showError("SQL keywords are not allowed in title or description.", formError, formSuccess);
+                return;
+            }
+
+            if (!description || description.length < 10) {
+                showError("Project description must be at least 10 characters long!", formError, formSuccess);
+                return;
+            }
+
+            const urlRegex = /^(https?:\/\/)?([\w\d\-_]+\.+[A-Za-z]{2,})+\/?/;
+            if (!urlRegex.test(projectLink)) {
+                showError("Enter a valid project URL!", formError, formSuccess);
+                return;
+            }
+        } catch (validationError) {
+            console.error("Validation error:", validationError);
+            showError("An error occurred during validation.", formError, formSuccess);
             return;
         }
-        
+
         // ✅ Add these debugging logs before creating the project object
         console.log("Attempting to add new project...");
         console.log("Title:", title);
@@ -194,141 +239,144 @@ const handleFormSubmission = (event) => {
         console.log("Project Link:", projectLink);
         console.log("Image File:", projectImage ? projectImage.name : "No Image Uploaded");
 
-        // Validate description to make sure its longer than 10 characters.
-        if (!description || description.length < 10) {
-            showError("Project description must be at least 10 characters long!", formError, formSuccess);
-            return;
-        }
-
-        // Validate URL format
-        const urlRegex = /^(https?:\/\/)?([\w\d\-_]+\.+[A-Za-z]{2,})+\/?/;
-        if (!urlRegex.test(projectLink)) {
-            showError("Enter a valid project URL!", formError, formSuccess);
-            return;
-        }
-
-        // Validate image file
         let imageURL = "";
-        if (projectImage) {
-            const validImageTypes = ["image/png", "image/jpeg"];
-            if (!validImageTypes.includes(projectImage.type)) {
-                showError("Only PNG and JPEG images are allowed!", formError, formSuccess);
-                return;
+        try {
+            if (projectImage) {
+                const validImageTypes = ["image/png", "image/jpeg"];
+                if (!validImageTypes.includes(projectImage.type)) {
+                    showError("Only PNG and JPEG images are allowed!", formError, formSuccess);
+                    return;
+                }
+                imageURL = URL.createObjectURL(projectImage);
             }
-            imageURL = URL.createObjectURL(projectImage);
+        } catch (fileError) {
+            console.error("Error handling image file:", fileError);
+            showError("Error processing image upload.", formError, formSuccess);
+            return;
         }
-
-        // Clear previous error
-        clearError(formError);
-
+        try {
+            clearError(formError);
         const newProject = new Project(
-            projects.length + 1,
+            (window.allProjects?.length || 0) + 1,
             title,
             description,
             technologies,
             category,
             imageURL
         );
+        
+        if (Array.isArray(window.allProjects)) {
+            window.allProjects.push(newProject);
+        }
+            
+            try {
+                const response = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newProject)
+                });
+            
+                if (!response.ok) {
+                    throw new Error('Failed to save project to server.');
+                }
+            
+                console.log('Project saved to server.');
+            } catch (networkError) {
+                console.error('Network error during project submission:', networkError);
+            }
 
+            const filterDropdown = document.getElementById('filterDropdown');
+            const selectedCategory = filterDropdown ? filterDropdown.value : 'All';
 
-        // Store and display project
-        projects.push(newProject);
-        displayProjects();
+            if (typeof window.filterProjects === "function") {
+                window.filterProjects(selectedCategory);
+            }
 
-        // Show success message and reset form
-        showSuccess("Project added successfully!", formSuccess);
-        document.getElementById('projectForm').reset();
-
-        console.log("Project successfully added:", newProject); // Log project details in console
-    } catch (error) {
-        console.error("Error handling project submission:", error);
+            showSuccess("Project added successfully!", formSuccess);
+            document.getElementById('projectForm').reset();
+            console.log("Project successfully added:", newProject);
+        } catch (addError) {
+            console.error("Error creating or displaying project:", addError);
+            showError("An error occurred while adding the project.", formError, formSuccess);
+        }
+    } catch (outerError) {
+        console.error("Unexpected error in form submission:", outerError);
+        showError("Unexpected error occurred. Please try again.", document.getElementById('formError'), document.getElementById('formSuccess'));
     }
 };
+
 
 // Sprint A4 Part 3
 const addProjectForm = () => {
     try {
         const formContainer = document.getElementById('projectSubmission');
         if (!formContainer) {
-            console.error('Error: Project submission container not found');
+            console.warn("⚠️ No 'projectSubmission' container found. Skipping form creation.");
             return;
         }
 
-        // Remove existing form if already present to avoid duplication
         if (document.getElementById('projectForm')) {
             console.warn("Project form already exists. Skipping form creation.");
             return;
         }
 
-        // Create Form Element
         const form = document.createElement('form');
         form.id = 'projectForm';
 
-        // Project Title
-        form.appendChild(createLabel('title', 'Project Title:'));
-        form.appendChild(createInput('text', 'title', true));
+        try {
+            form.appendChild(createLabel('title', 'Project Title:'));
+            form.appendChild(createInput('text', 'title', true));
 
-        // Project Description
-        form.appendChild(createLabel('description', 'Project Description:'));
-        const descriptionInput = document.createElement('textarea');
-        descriptionInput.id = 'description';
-        descriptionInput.required = true;
-        form.appendChild(descriptionInput);
+            form.appendChild(createLabel('description', 'Project Description:'));
+            const descriptionInput = document.createElement('textarea');
+            descriptionInput.id = 'description';
+            descriptionInput.required = true;
+            form.appendChild(descriptionInput);
 
-        // Technologies & Project Link (Side by Side)
-        const flexContainer = document.createElement('div');
-        flexContainer.className = 'form-flex-container';
+            const flexContainer = document.createElement('div');
+            flexContainer.className = 'form-flex-container';
 
-        // Category Selection
-        const categoryWrapper = document.createElement('div');
-        categoryWrapper.className = 'input-group';
-        categoryWrapper.appendChild(createLabel('category', 'Project Category:'));
+            const categoryWrapper = document.createElement('div');
+            categoryWrapper.className = 'input-group';
+            categoryWrapper.appendChild(createLabel('category', 'Project Category:'));
 
-        const categorySelect = document.createElement('select');
-        categorySelect.id = 'category';
-        categorySelect.required = true;
+            const categorySelect = document.createElement('select');
+            categorySelect.id = 'category';
+            categorySelect.required = true;
 
-        // Category Options
-        const categories = ["Web Development", "UI/UX Design", "Responsive Design"];
-        categories.forEach(cat => {
-        const option = document.createElement('option');
-        option.value = cat;
-        option.textContent = cat;
-        categorySelect.appendChild(option);
-        });
+            const categories = ["Web Development", "UI/UX Design", "Responsive Design"];
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
 
-        categoryWrapper.appendChild(categorySelect);
-        flexContainer.appendChild(categoryWrapper);
+            categoryWrapper.appendChild(categorySelect);
+            flexContainer.appendChild(categoryWrapper);
+            flexContainer.appendChild(createInputGroup('technologies', 'Technologies Used (comma-separated):'));
+            flexContainer.appendChild(createInputGroup('projectLink', 'Project Link:', 'url', 'https://example.com'));
+            form.appendChild(flexContainer);
 
+            const fileContainer = document.createElement('div');
+            fileContainer.className = 'file-upload-container';
+            fileContainer.appendChild(createLabel('projectImage', 'Upload Image:'));
+            fileContainer.appendChild(createInput('file', 'projectImage', false, '', 'image/png, image/jpeg'));
+            form.appendChild(fileContainer);
 
-        // Technologies Used
-        const techWrapper = createInputGroup('technologies', 'Technologies Used (comma-separated):');
-        flexContainer.appendChild(techWrapper);
+            const submitButton = document.createElement('button');
+            submitButton.type = 'submit';
+            submitButton.textContent = 'Add Project';
+            form.appendChild(submitButton);
 
-        // Project Link
-        const linkWrapper = createInputGroup('projectLink', 'Project Link:', 'url', 'https://example.com');
-        flexContainer.appendChild(linkWrapper);
+            formContainer.appendChild(form);
 
-        form.appendChild(flexContainer);
+            form.addEventListener('submit', handleFormSubmission);
 
-        // File Upload Section
-        const fileContainer = document.createElement('div');
-        fileContainer.className = 'file-upload-container';
-        fileContainer.appendChild(createLabel('projectImage', 'Upload Image:'));
-        fileContainer.appendChild(createInput('file', 'projectImage', false, '', 'image/png, image/jpeg'));
-        form.appendChild(fileContainer);
-
-        // Submit Button
-        const submitButton = document.createElement('button');
-        submitButton.type = 'submit';
-        submitButton.textContent = 'Add Project';
-        form.appendChild(submitButton);
-
-        // Append form to the container
-        formContainer.appendChild(form);
-
-        // Add event listener for form submission
-        form.addEventListener('submit', handleFormSubmission);
+        } catch (innerErr) {
+            console.error("Error building form elements:", innerErr);
+            formContainer.innerText = "An error occurred while building the form.";
+        }
 
     } catch (error) {
         console.error('Error creating project submission form:', error);

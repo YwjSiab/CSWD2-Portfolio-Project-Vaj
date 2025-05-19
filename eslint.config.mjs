@@ -9,6 +9,7 @@ export default [
       sourceType: "module",
       globals: {
         ...globals.browser, // Enables browser-specific globals like console, window
+        ...globals.node     // ✅ add this line for server-side files
       }
     },
     rules: {
