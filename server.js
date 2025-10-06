@@ -8,6 +8,7 @@ const fs = require('fs');
 // Middleware
 app.use(express.static(path.join(__dirname)));
 app.use(express.json());
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // Serve index.html
 app.get('/', (req, res) => {
