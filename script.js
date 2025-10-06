@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
       // 📦 Sprint B3: Dynamic data loaded from JSON using fetch()
       console.log("🌐 Fetching project data from Node server...");
-      const response = await fetch("http://localhost:3000/api/projects");
+      const response = await fetch("/api/projects");
         if (!response.ok) {
           throw new Error('Failed to fetch project data.');
         }  
