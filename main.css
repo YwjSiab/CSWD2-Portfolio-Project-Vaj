@@ -6,6 +6,10 @@
 */
 /* HTML Styles */
 
+* {
+  box-sizing: border-box;
+}
+
 html {
     background-color: rgb(25, 122, 247);
     font-size: 12px;
@@ -18,16 +22,19 @@ html {
  /* Page Body Styles */
  
  body {
-    background-color: rgb(25, 122, 247);
-    font-family: Verdana, Geneva, Arial, sans-serif; 	
-    margin-left: auto;
-    margin-right: auto;
-    width: 960px;
- }
+  background-color: rgb(25, 122, 247);
+  font-family: Verdana, Geneva, Arial, sans-serif; 	
+  margin: 0 auto;
+  max-width: 100%;
+  width: 100%; /* ✅ Changed from 960px */
+  box-sizing: border-box;
+}
 
- body div {
-   width: 960px;
- }
+body div {
+  width: 100%;
+  max-width: 960px; /* optional */
+  margin: 0 auto;
+}
  
  aside {
     background-color: rgb(25, 233, 247);
@@ -63,9 +70,13 @@ aside h2 {
    color: rgb(247, 39, 25);
 }
 
-asideText {
-   font-size: 0.75em italicized;
+.asideText {
+  font-style: italic;
+  font-size: 1rem;
+  display: inline-block; 
+  margin: 0 0 12px 0;
 }
+
 
 p {
    color: white;
@@ -308,4 +319,158 @@ input#name:focus:invalid, input#zip:focus:invalid, input#phone:focus:invalid, in
 .file-upload-container label {
    font-weight: bold;
    white-space: nowrap; /* Prevent label from wrapping */
+}
+
+.project-card.touched {
+  outline: 2px solid #007BFF;
+  transition: outline 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  aside {
+    float: none;
+    width: 100%;
+    margin-right: 0;
+  }
+
+  nav {
+    float: none;
+    width: 100%;
+  }
+
+  .top-section {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: unset;
+  }
+
+  #projectDetailsContainer {
+    width: 100%;
+  }
+
+  .project-detail-image {
+    width: 100%;
+  }
+}
+
+.page {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;              
+  max-width: 1200px;
+  margin: 0 auto;         
+  padding: 16px 24px;
+}
+
+nav-sidebar {
+  flex: 0 0 260px;        
+  position: sticky;       
+  top: 12px;
+}
+
+main {
+  flex: 1 1 auto;
+  min-width: 0;  
+  text-align: center;         
+}
+
+@media (max-width: 800px) {
+  .page {
+    flex-direction: column;
+  }
+  nav-sidebar {
+    position: static;
+    width: 100%;
+    flex: none;
+  }
+}
+
+/* Sidebar component styles */
+nav-sidebar aside {
+  background: rgb(25,233,247);
+  padding: 20px;
+  border-radius: 25px;
+
+    /* override global aside floats/sizing */
+  float: none !important;
+  width: 100% !important;
+  margin: 0 !important;
+  display: block;
+}
+
+nav-sidebar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+nav-sidebar li {
+  margin: 8px 0;
+}
+
+nav-sidebar a {
+  color: rgb(247,39,25);
+  text-decoration: none;
+  font-size: 1.1rem;
+}
+
+nav-sidebar a:hover {
+  color: rgb(86,0,179);
+}
+
+nav-sidebar h2 {
+  margin: 0 0 12px;
+}
+
+nav-sidebar .asideText {
+  font-style: italic;
+  font-size: 0.9rem;
+  white-space: nowrap; /* force one line */
+}
+
+/* Camera component */
+.camera-capture{max-width: 680px}
+.camera-row{display:flex; gap:12px; align-items:center}
+.camera-row video{
+  width: 320px; height: 240px; background:#000; border-radius:8px
+}
+.camera-row canvas{display:none}
+.camera-controls{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0}
+.camera-preview img{
+  display:block; max-width:320px; height:auto; border-radius:8px; margin-top:6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25)
+}
+.cam-msg{color:#fff; opacity:.9; margin-top:6px; font-size:.9rem}
+
+/* Hover highlight effect */
+.hover-highlight {
+  position: relative;
+  cursor: pointer;
+  color: inherit; /* keep normal text color */
+  text-decoration: underline dotted; /* subtle underline to show interactivity */
+}
+
+.hover-highlight::after {
+  content: attr(data-hover);
+  position: absolute;
+  left: 0;
+  bottom: 125%; /* show tooltip above */
+  background: rgba(25, 122, 247, 0.95); /* blue background */
+  color: white;
+  padding: 4px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.hover-highlight:hover::after {
+  opacity: 1;
+  transform: translateY(0);
 }

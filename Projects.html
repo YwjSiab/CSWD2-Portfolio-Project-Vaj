@@ -1,29 +1,23 @@
 <!DOCTYPE html>
-<html lang=”en”>
+<html lang="en">
 <head>
-<meta charset=”utf-8” />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
 <title>Projects</title>
 <link href="main.css" rel="stylesheet" />
 <script type="module" src="script.js"></script>
+<script type="module" src="components/NavSidebar.js"></script>
 </head>
 
 <body>
+<div class="page">
     <div class="projects-page-container">
         <!-- Top Section: Sidebar (Links) + Project Details -->
         <div class="top-section">
-            <!-- Sidebar Navigation (Fixed on Left) -->
-            <aside class="sidebar">
-                <nav>
-                    <ul>
-                        <h2><asideText>Links to My</asideText></h2>
-                        <li><a href="index.html"><strong>Home</strong></a></li>
-                        <li><a href="Resume.html">Resume</a></li>
-                        <li><a href="Projects.html">Projects</a></li>
-                        <li><a href="Contact.html">Contact</a></li>
-                    </ul>
-                </nav>
-            </aside>
-    
+            <nav-sidebar></nav-sidebar>
+
             <!-- Project Details Section -->
             <section id="projectDetailsContainer">
                 <h2>Project Details</h2>
@@ -34,7 +28,7 @@
     
         <!-- Projects Section (Starts Below Links and Project Details) -->
         <section id="portfolio">
-            <h2>My Projects</h2>
+            <h2><span class="hover-highlight" data-hover="These are my projects">My Projects</span></h2>
             <label for="filterDropdown">Filter by Category:</label>
             <select id="filterDropdown">
                 <option value="All">All</option>
@@ -51,11 +45,11 @@
             <p id="formError" style="color: #ffd700; font-weight: bold;"></p>
         </section>              
     </div>
-    
+</div>
+</body>
      
 <footer>
     <Address>
         Ywj Siab Vaj &#9830; 2012 Weston Avenue &#9830; Schofield, WI 54476
     </Address>
 </footer>
-</body>

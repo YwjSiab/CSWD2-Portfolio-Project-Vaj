@@ -12,6 +12,8 @@ if (contactForm) {
             const message = sanitizeInput(document.getElementById("message").value);
             const formError = document.getElementById('formError');
             const formSuccess = document.getElementById('formSuccess');
+            // Grab the hidden input from the camera component
+            const photo = document.getElementById("photoDataUrl")?.value || "";
 
             const submittedToken = document.querySelector("input[name='csrfToken']")?.value;
             const storedToken = sessionStorage.getItem("csrfToken");
@@ -30,8 +32,14 @@ if (contactForm) {
             // Sprint A4 part 2
             // Function to show error and clear success message
             const showError = (errorMsg) => {
-                if (formError) {formError.innerText = errorMsg;}
-                if (formSuccess) {formSuccess.innerText = '';} // Clear success message
+                if (formError) {
+                    formError.innerText = errorMsg;
+                    formError.style.display = 'block';   // ✅ make it show
+                }
+                if (formSuccess) {
+                    formSuccess.innerText = '';
+                    formSuccess.style.display = 'none';  // ✅ hide success if error
+                }
             };
 
             const sqlPattern = /\b(SELECT|INSERT|UPDATE|DELETE|DROP|TRUNCATE|--)\b/i;
@@ -78,9 +86,16 @@ if (contactForm) {
 
             sessionStorage.setItem('lastContactSubmit', now.toString());
 
-            console.log('Form submitted successfully:', { name, email, message });
+            console.log('Form submitted successfully:', { name, email, message, photo});
 
-            if (formSuccess){formSuccess.innerText = 'Your message has been sent!';}
+            if (formSuccess) {
+                formSuccess.innerText = 'Your message has been sent!';
+                formSuccess.style.display = 'block';
+            }
+            if (formError) {
+                formError.innerText = '';
+                formError.style.display = 'none';
+            }
             contactForm.reset();
         } catch (error) {
             console.error('Error handling contact form submission:', error);
@@ -270,19 +285,16 @@ const handleFormSubmission = async (event) => {
         }
             
             try {
-                const response = await fetch('/api/projects', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(newProject)
-                });
-            
-                if (!response.ok) {
-                    throw new Error('Failed to save project to server.');
-                }
-            
-                console.log('Project saved to server.');
-            } catch (networkError) {
-                console.error('Network error during project submission:', networkError);
+                let storedProjects = localStorage.getItem("projects");
+                let projectArray = storedProjects ? JSON.parse(storedProjects) : [];
+
+                projectArray.push(newProject);
+                localStorage.setItem("projects", JSON.stringify(projectArray));
+
+                console.log('✅ Project saved to localStorage.');
+            } catch (storageError) {
+                console.error("❌ Failed to save project to localStorage:", storageError);
+                showError("An error occurred while saving your project locally. Please try again.", formError, formSuccess);
             }
 
             const filterDropdown = document.getElementById('filterDropdown');

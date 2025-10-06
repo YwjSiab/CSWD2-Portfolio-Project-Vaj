@@ -17,13 +17,22 @@ app.get('/', (req, res) => {
 // Serve project data via GET route
 app.get('/api/projects', (req, res) => {
   const filePath = path.join(__dirname, 'projects.json');
+  if (!fs.existsSync(filePath)) {
+    console.error("❌ File not found:", filePath);
+    return res.status(404).json({ error: 'Project data not found' });
+  }
   fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
       console.error("❌ Failed to read projects.json:", err);
       return res.status(500).json({ error: 'Could not load project data' });
     }
-    res.setHeader('Content-Type', 'application/json');
-    res.send(data);
+    try {
+      const parsed = JSON.parse(data);
+      res.json(parsed);
+    } catch (parseErr) {
+      console.error("❌ Invalid JSON in projects.json:", parseErr);
+      res.status(500).json({ error: 'Malformed JSON in project data' });
+    }
   });
 });
 
@@ -65,7 +74,7 @@ app.post('/api/projects', (req, res) => {
     res.status(200).json({ message: 'Project saved successfully' });
   } catch (err) {
     console.error('❌ Error in /api/projects:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error in POST /api/projects' });
   }
 });
 

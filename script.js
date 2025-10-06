@@ -38,28 +38,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       generateCSRFToken();
       addProjectForm();
-      
-      try {
-        const stored = localStorage.getItem("projects");
-        if (stored) {
-          const rawStored = JSON.parse(stored);
-          const convertedStored = rawStored.map(p =>
-          new Project(p.id, p.title, p.description, p.techStack, p.category, p.image)
-          );
-          allProjects.splice(0, allProjects.length, ...convertedStored);
 
-          console.log("✅ Loaded projects from localStorage.");
-        }
-      } catch (error) {
-        console.error("⚠️ Error loading projects from localStorage:", error);
+      // 📢 Check if the Notification API is supported by the browser
+      if ("Notification" in window) {
+        // Request permission from the user to send notifications
+        Notification.requestPermission().then((permission) => {
+          // If permission is granted, display a welcome notification
+          if (permission === "granted") {
+            new Notification("✅ Portfolio Ready", {
+              body: "You can now use this app offline!", // Message shown in the notification body
+              icon: "/icon-192.png" // App icon for the notification
+            });
+          }
+        });
       }
     
       // 📦 Sprint B3: Dynamic data loaded from JSON using fetch()
-      const response = await fetch('/api/projects');
-      if (!response.ok) {
-        throw new Error('Failed to fetch project data.');
-      }      
-      
+      console.log("🌐 Fetching project data from Node server...");
+      const response = await fetch("http://localhost:3000/api/projects");
+        if (!response.ok) {
+          throw new Error('Failed to fetch project data.');
+        }  
       const raw = await response.json();
       const converted = raw.map(p =>
       new Project(p.id, p.title, p.description, p.techStack, p.category, p.image)
@@ -80,8 +79,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       });
       displayFilteredProjects(allProjects);
-      localStorage.setItem("projects", JSON.stringify(allProjects));
-  
+      // Enable touch interaction feedback for mobile users
+      document.querySelectorAll('.project-card').forEach((card) => {
+        // Add a visual highlight on touchstart
+        card.addEventListener('touchstart', () => {
+          card.classList.add('touched'); // Add styling class (e.g., outline)
+    
+          // Trigger a short vibration if supported (improves tactile UX)
+          navigator.vibrate?.(50);
+        });
+      });
+        
       const dropdown = document.getElementById('filterDropdown');
       if (dropdown) {
         dropdown.addEventListener('change', (e) => filterProjects(e.target.value));
@@ -89,7 +97,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         console.warn('⚠️ Dropdown not found – skipping filterProjects init.');
       }
-  
+
+      // ✅ Register the service worker to enable offline support
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/serviceworker.js")
+        .then(() => console.log("✅ Service Worker registered")) // Success message
+        .catch((err) => console.error("❌ SW registration failed:", err)); // Log registration failure
+      }
+
+      // 🛠️ Listen for the PWA installation event
+      let deferredPrompt;
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault(); // Prevent the default mini-infobar from appearing
+        deferredPrompt = e; // Save the event for manual triggering
+
+          // 📌 Find the install button (if it exists on this page)
+          const installBtn = document.querySelector("#installBtn");
+
+        // ✅ Only proceed if the button is actually present
+        if (installBtn) {
+          // Make the install button visible
+          installBtn.style.display = "block";
+
+          // When the button is clicked, show the install prompt
+          installBtn.addEventListener("click", () => {
+            deferredPrompt.prompt();
+          });
+        }
+      });
+
 
 } catch (error) {
     console.error('Error during page initialization:', error);
